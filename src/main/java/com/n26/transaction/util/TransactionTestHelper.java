@@ -9,8 +9,7 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
 
 public class TransactionTestHelper {
-    public static ChronoUnit SECONDS = ChronoUnit.SECONDS;
-    public static ChronoUnit MILLIS = ChronoUnit.MILLIS;
+    public static final ChronoUnit SECONDS = ChronoUnit.SECONDS;
 
     public TransactionTestHelper() {
     }
