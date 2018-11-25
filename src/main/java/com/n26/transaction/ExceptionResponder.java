@@ -10,7 +10,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @ControllerAdvice
 @RequestMapping
 public class ExceptionResponder {
-    private Logger logger = LoggerFactory.getLogger(ExceptionResponder.class);
+    private static final Logger logger = LoggerFactory.getLogger(ExceptionResponder.class);
 
     @ExceptionHandler(TransactionException.class)
     public ResponseEntity<?> handler(TransactionException ex) {

@@ -27,7 +27,7 @@ import static com.n26.transaction.TransactionException.Reason.OUTDATED_TRANSACTI
 @Service
 public class StatisticsManagerImpl implements StatisticsManager {
 
-    private static Logger logger = LoggerFactory.getLogger(StatisticsManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(StatisticsManager.class);
 
     private TransactionStatisticsWrapper[] transactionStatisticWrappers;
 

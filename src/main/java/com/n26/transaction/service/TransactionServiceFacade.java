@@ -16,7 +16,7 @@ import java.time.Instant;
 @Service
 public class TransactionServiceFacade implements TransactionService, StatisticsService {
 
-    private static Logger logger = LoggerFactory.getLogger(TransactionServiceFacade.class);
+    private static final Logger logger = LoggerFactory.getLogger(TransactionServiceFacade.class);
 
     @Autowired
     private StatisticsManager statisticsManager;

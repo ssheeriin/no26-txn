@@ -8,8 +8,7 @@ import java.time.temporal.TemporalUnit;
 @Component
 public class TimeUtil {
 
-
-    public static long minimumStartingTransactionTimeOf(int maxHistoryInMillis, int timeSliceInMillis, long timestamp) {
+    private static long minimumStartingTransactionTimeOf(int maxHistoryInMillis, int timeSliceInMillis, long timestamp) {
         return timestamp - maxHistoryInMillis + timeSliceInMillis;
     }
 

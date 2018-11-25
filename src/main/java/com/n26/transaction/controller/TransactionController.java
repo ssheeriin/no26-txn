@@ -21,7 +21,7 @@ public class TransactionController {
     @Autowired
     private TransactionService transactionService;
 
-    private static Logger logger = LoggerFactory.getLogger(TransactionController.class);
+    private static final Logger logger = LoggerFactory.getLogger(TransactionController.class);
 
     @RequestMapping(method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> addTransaction(@RequestBody Transaction transaction) throws TransactionException {

@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController("/statistics")
 public class StatisticsController {
 
-    private Logger logger = LoggerFactory.getLogger(StatisticsController.class);
+    private static final Logger logger = LoggerFactory.getLogger(StatisticsController.class);
 
     @Autowired
     private StatisticsService statisticsService;
