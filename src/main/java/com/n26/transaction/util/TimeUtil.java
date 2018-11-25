@@ -27,10 +27,13 @@ public class TimeUtil {
         return slice1 == slice2;
     }
 
-    public static Instant getFutureTime(int offset, TemporalUnit unit) {
-        return Instant.now().plus(offset, unit);
+    public static Instant getFutureTime(Instant start, int offset, TemporalUnit unit) {
+        return start.plus(offset, unit);
     }
 
+    public static Instant getFutureTime(int offset, TemporalUnit unit) {
+        return getFutureTime(Instant.now(), offset, unit);
+    }
     public static Instant getHistoricTime(int offset, TemporalUnit unit) {
         return Instant.now().minus(offset, unit);
     }
@@ -45,6 +48,10 @@ public class TimeUtil {
 
     public static long getFutureTimeMillis(int offset, TemporalUnit unit) {
         return getFutureTime(offset, unit).toEpochMilli();
+    }
+
+    public static long getFutureTimeMillis(Instant start, int offset, TemporalUnit unit) {
+        return getFutureTime(start, offset, unit).toEpochMilli();
     }
 
     public static long getHistoricTimeMillis(int offset, TemporalUnit unit) {

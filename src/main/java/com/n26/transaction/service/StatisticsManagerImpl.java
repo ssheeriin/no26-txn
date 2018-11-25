@@ -2,50 +2,64 @@ package com.n26.transaction.service;
 
 import com.n26.transaction.Config;
 import com.n26.transaction.TransactionException;
+import com.n26.transaction.api.StatisticsManager;
 import com.n26.transaction.model.Transaction;
 import com.n26.transaction.model.TransactionStatisticsWrapper;
+import com.n26.transaction.model.TransactionStatisticsWrapper.Statistics;
 import com.n26.transaction.util.TimeUtil;
+import lombok.Setter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
 
+import static com.n26.transaction.TransactionException.Reason.FUTURE_DATED_TRANSACTION;
+import static com.n26.transaction.TransactionException.Reason.OUTDATED_TRANSACTION;
+
 /**
  * Accept the transactions and calculates statistics
  */
-@Component
-public class StatisticsManager {
+@Service
+public class StatisticsManagerImpl implements StatisticsManager {
+
+    private static Logger logger = LoggerFactory.getLogger(StatisticsManager.class);
 
     private TransactionStatisticsWrapper[] transactionStatisticWrappers;
 
     @Autowired
+    @Setter
     private Config config;
 
     private int historyTimeInMillis;
     private int timeSliceInMillis;
 
     @PostConstruct
-    public void afterInit() {
+    void afterInit() {
         historyTimeInMillis = config.getMaxHistoryInMillis();
         timeSliceInMillis = config.getTimeSliceInMillis();
         transactionStatisticWrappers = new TransactionStatisticsWrapper[historyTimeInMillis / timeSliceInMillis];
     }
 
     /**
-     * Add this @transaction to statistics
+     * Add a <b>transaction</b> to the statistics
      *
      * @param transaction transaction to be added
      * @param now         transaction incoming time
      * @throws TransactionException if transaction cannot be applied
      */
+    @Override
     public void accept(Transaction transaction, Instant now) throws TransactionException {
         assertValidTransaction(transaction, now);
-        int index = getTransactionIndex(transaction);
-        TransactionStatisticsWrapper statistics = getTransactionStatistic(index);
 
+        int index = getTransactionIndex(transaction);
+        logger.trace("Index for transaction {} : {}", transaction, index);
+
+        TransactionStatisticsWrapper statistics = getTransactionStatistic(index);
         try {
             statistics.getLock().writeLock().lock();
             statistics.accept(transaction, now);
@@ -56,10 +70,12 @@ public class StatisticsManager {
 
     private void assertValidTransaction(Transaction transaction, Instant now) throws TransactionException {
         if (!isValidTransaction(transaction, now)) {
-            throw new TransactionException(TransactionException.Reason.OUTDATED_TRANSACTION);
+            logger.warn("Transaction {} is outdated", transaction);
+            throw new TransactionException(OUTDATED_TRANSACTION);
         }
         if (isFutureTransaction(transaction, now)) {
-            throw new TransactionException(TransactionException.Reason.FUTURE_DATED_TRANSACTION);
+            logger.warn("Transaction {} is in future", transaction);
+            throw new TransactionException(FUTURE_DATED_TRANSACTION);
         }
     }
 
@@ -80,8 +96,10 @@ public class StatisticsManager {
         return statistics;
     }
 
-    private int getTransactionIndex(Transaction transaction) throws TransactionException {
+    int getTransactionIndex(Transaction transaction) throws TransactionException {
         long txnTime = getTransactionTime(transaction);
+        logger.trace("Transaction time (mills) : {}", txnTime);
+
         return (int) ((txnTime / timeSliceInMillis) % transactionStatisticWrappers.length);
     }
 
@@ -93,11 +111,15 @@ public class StatisticsManager {
         transactionStatisticWrappers = new TransactionStatisticsWrapper[historyTimeInMillis / timeSliceInMillis];
     }
 
-    public TransactionStatisticsWrapper.Statistics getStatistics() {
-        TransactionStatisticsWrapper.Statistics total = new TransactionStatisticsWrapper.Statistics();
+    @Override
+    public Statistics getStatistics() {
+        Statistics total = new Statistics();
         Instant now = Instant.now();
-        Arrays.stream(transactionStatisticWrappers).filter(c -> c != null && c.getStatistics().getCount() > 0).forEach(c -> c.mergeTo(total, now));
+        Arrays.stream(transactionStatisticWrappers).filter(wrapper -> wrapper != null && wrapper.getStatistics().getCount() > 0)
+                .forEach(wrapper -> wrapper.mergeTo(total, now));
+
         if (total.getCount() < 1) {
+            logger.trace("No transactions found");
             total.setMin(BigDecimal.ZERO);
             total.setMax(BigDecimal.ZERO);
         }

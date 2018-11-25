@@ -2,20 +2,20 @@ package com.n26.transaction.model;
 
 import com.n26.transaction.TransactionException;
 import com.n26.transaction.model.TransactionStatisticsWrapper.Statistics;
-import com.n26.transaction.util.TimeUtil;
+import com.n26.transaction.util.TransactionTestHelper;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.TemporalUnit;
 
-import static java.time.temporal.ChronoUnit.SECONDS;
+import static com.n26.transaction.util.TransactionTestHelper.SECONDS;
 
 
 public class TransactionStatisticsWrapperTest {
 
+    private final TransactionTestHelper transactionTestHelper = new TransactionTestHelper();
     private TransactionStatisticsWrapper statisticsWrapper;
 
     @Before
@@ -27,11 +27,11 @@ public class TransactionStatisticsWrapperTest {
     public void testCanMerge_sliceHasStatistics() {
         Instant now = Instant.now();
         try {
-            statisticsWrapper.accept(createBackDatedTransaction(now, 2, SECONDS, "10"), now);
+            statisticsWrapper.accept(transactionTestHelper.createBackDatedTransaction(now, 2, SECONDS, "10"), now);
         } catch (TransactionException e) {
             Assert.fail("Unexpected exception : " + e.getMessage());
         }
-        boolean canMerge = statisticsWrapper.canMerge(now, createDummyStatistics("10"));
+        boolean canMerge = statisticsWrapper.canMerge(now, transactionTestHelper.createDummyStatistics("10"));
 
         Assert.assertTrue(canMerge);
     }
@@ -39,7 +39,7 @@ public class TransactionStatisticsWrapperTest {
     @Test
     public void testCanMerge_sliceIsEmpty() {
         Instant now = Instant.now();
-        boolean canMerge = statisticsWrapper.canMerge(now, createDummyStatistics("10.0"));
+        boolean canMerge = statisticsWrapper.canMerge(now, transactionTestHelper.createDummyStatistics("10.0"));
         Assert.assertFalse(canMerge);
     }
 
@@ -47,7 +47,7 @@ public class TransactionStatisticsWrapperTest {
     public void testMergeStatistics() {
         Instant now = Instant.now();
         addBackDatedTransaction(now, "20");
-        Statistics s = createDummyStatistics("10");
+        Statistics s = transactionTestHelper.createDummyStatistics("10");
         statisticsWrapper.mergeStatistics(s);
 
         s = statisticsWrapper.getStatistics();
@@ -60,7 +60,7 @@ public class TransactionStatisticsWrapperTest {
 
     @Test
     public void testMergeStatistics_NoPreviousStatistics() {
-        Statistics s = createDummyStatistics("10");
+        Statistics s = transactionTestHelper.createDummyStatistics("10");
         statisticsWrapper.mergeStatistics(s);
 
         s = statisticsWrapper.getStatistics();
@@ -71,21 +71,38 @@ public class TransactionStatisticsWrapperTest {
         Assert.assertEquals(s.getAvg().longValue(), 10L);
     }
 
+    @Test
+    public void testMergeTo_validTransaction() {
+
+        Instant now = Instant.now();
+        Statistics summary = new Statistics();
+        try {
+            statisticsWrapper.accept(transactionTestHelper.createBackDatedTransaction(now, 1, SECONDS, "1.0"), now);
+            statisticsWrapper.accept(transactionTestHelper.createBackDatedTransaction(now, 5, SECONDS, "1.5"), now);
+        } catch (TransactionException e) {
+            Assert.fail("Unexpected exception : " + e.getMessage());
+        }
+        statisticsWrapper.mergeTo(summary, now);
+        Assert.assertEquals(2L, summary.getCount().longValue());
+        Assert.assertEquals(1.5, summary.getMax().doubleValue(), 0);
+        Assert.assertEquals(1.0, summary.getMin().doubleValue(), 0);
+        Assert.assertEquals(2.5, summary.getSum().doubleValue(), 0);
+        Assert.assertEquals(1.25, summary.getAvg().doubleValue(), 0);
+    }
+
     private void addBackDatedTransaction(Instant now, String amount) {
         try {
-            statisticsWrapper.accept(createBackDatedTransaction(now, 2, SECONDS, amount), now);
+            statisticsWrapper.accept(transactionTestHelper.createBackDatedTransaction(now, 2, SECONDS, amount), now);
         } catch (TransactionException e) {
             Assert.fail("Unexpected exception : " + e.getMessage());
         }
     }
 
     private Statistics createDummyStatistics(String strAmount) {
-        BigDecimal amount = new BigDecimal(strAmount);
-        return new Statistics(Instant.now().toEpochMilli(), amount, amount, amount, amount, 1L);
+        return transactionTestHelper.createDummyStatistics(strAmount);
     }
 
     private Transaction createBackDatedTransaction(Instant start, int offSet, TemporalUnit unit, String amount) {
-        Instant time = TimeUtil.getHistoricTime(start, offSet, unit);
-        return Transaction.create(amount, time.toString());
+        return transactionTestHelper.createBackDatedTransaction(start, offSet, unit, amount);
     }
 }

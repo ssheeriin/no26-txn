@@ -15,12 +15,8 @@ public class ExceptionResponder {
     @ExceptionHandler(TransactionException.class)
     public ResponseEntity<?> handler(TransactionException ex) {
 
-        ex.getReason().ifPresent((r) -> {
-            logger.error(r.name(), ex);
-
-        });
-
         TransactionException.Reason reason = ex.getReason().orElse(TransactionException.Reason.UNEXPECTED_ERROR);
+        logger.error(reason.name(), ex);
         return new ResponseEntity<>(reason.getHttpStatus());
     }
 

@@ -21,12 +21,14 @@ public class TransactionController {
     @Autowired
     private TransactionService transactionService;
 
-    private Logger logger = LoggerFactory.getLogger(TransactionController.class);
+    private static Logger logger = LoggerFactory.getLogger(TransactionController.class);
 
     @RequestMapping(method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> addTransaction(@RequestBody Transaction transaction) throws TransactionException {
-        logger.info("Received transation {}", transaction);
+        logger.debug("Received transaction {}", transaction);
         transactionService.addTransaction(transaction);
+
+        logger.debug("Transaction recorded");
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
@@ -36,7 +38,9 @@ public class TransactionController {
 
     @RequestMapping(method = RequestMethod.DELETE)
     public ResponseEntity<String> deleteTransactions() throws TransactionException {
+        logger.debug("deleting transactions");
         transactionService.deleteTransactions();
+        logger.debug("transactions deleted");
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
